@@ -1,0 +1,4141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#071c18" />
+  <title>Blackjack 大師訓練器</title>
+
+  <style>
+    :root {
+      --bg: #061411;
+      --panel: #0d211d;
+      --panel-2: #112b26;
+      --table: #0a513d;
+      --table-dark: #063b2e;
+      --gold: #f4c767;
+      --gold-2: #fff0ad;
+      --text: #f7faf8;
+      --muted: #9fb9b0;
+      --green: #51dfa3;
+      --red: #ff6b6b;
+      --blue: #72b7ff;
+      --orange: #ffad5c;
+      --line: rgba(255, 255, 255, 0.1);
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+      --card-width: clamp(58px, 7vw, 82px);
+      --card-height: calc(var(--card-width) * 1.42);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: dark;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(29, 108, 83, 0.22), transparent 34%),
+        radial-gradient(circle at 90% 15%, rgba(244, 199, 103, 0.1), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
+        sans-serif;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(244, 199, 103, 0.75);
+      outline-offset: 3px;
+    }
+
+    .app {
+      width: min(1450px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(244, 199, 103, 0.45);
+      border-radius: 15px;
+      background:
+        linear-gradient(145deg, rgba(244, 199, 103, 0.2), rgba(244, 199, 103, 0.04));
+      box-shadow: inset 0 0 20px rgba(244, 199, 103, 0.08);
+      color: var(--gold);
+      font-size: 25px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      overflow: hidden;
+      font-size: clamp(20px, 3vw, 28px);
+      line-height: 1.1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .brand p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .icon-button,
+    .soft-button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.055);
+      cursor: pointer;
+      transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background 0.18s ease;
+    }
+
+    .icon-button {
+      min-width: 44px;
+      padding: 0 12px;
+    }
+
+    .soft-button {
+      padding: 10px 14px;
+    }
+
+    .icon-button:hover,
+    .soft-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(244, 199, 103, 0.4);
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat-card {
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(13, 33, 29, 0.8);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat-value {
+      overflow: hidden;
+      color: var(--gold-2);
+      font-size: clamp(16px, 2.5vw, 22px);
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 370px;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .game-column,
+    .coach-panel {
+      min-width: 0;
+    }
+
+    .table-shell {
+      position: relative;
+      overflow: hidden;
+      min-height: 620px;
+      border: 1px solid rgba(244, 199, 103, 0.25);
+      border-radius: 28px;
+      background:
+        radial-gradient(ellipse at center, rgba(14, 112, 82, 0.95), var(--table-dark) 76%),
+        var(--table);
+      box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.13),
+        inset 0 0 70px rgba(0, 0, 0, 0.25),
+        var(--shadow);
+      transition:
+        border-color 0.35s ease,
+        box-shadow 0.35s ease,
+        filter 0.35s ease;
+    }
+
+    .table-shell.outcome-win {
+      border-color: rgba(81, 223, 163, 0.9);
+      box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.13),
+        inset 0 0 80px rgba(81, 223, 163, 0.12),
+        0 0 0 3px rgba(81, 223, 163, 0.12),
+        0 22px 70px rgba(26, 187, 128, 0.24);
+    }
+
+    .table-shell.outcome-loss {
+      border-color: rgba(255, 107, 107, 0.9);
+      box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.13),
+        inset 0 0 80px rgba(255, 107, 107, 0.12),
+        0 0 0 3px rgba(255, 107, 107, 0.12),
+        0 22px 70px rgba(255, 58, 58, 0.2);
+    }
+
+    .table-shell.outcome-push {
+      border-color: rgba(114, 183, 255, 0.9);
+      box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.13),
+        inset 0 0 80px rgba(114, 183, 255, 0.1),
+        0 0 0 3px rgba(114, 183, 255, 0.11),
+        0 22px 70px rgba(67, 143, 222, 0.18);
+    }
+
+    .table-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      min-height: 620px;
+      padding: 24px 24px 18px;
+      flex-direction: column;
+    }
+
+    .felt-mark {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      z-index: 0;
+      width: min(620px, 82%);
+      height: 250px;
+      border: 1px solid rgba(244, 199, 103, 0.12);
+      border-bottom: none;
+      border-radius: 400px 400px 0 0;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .rules-line {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .rule-pill {
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.14);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+    }
+
+    .shoe-stack {
+      position: absolute;
+      top: 24px;
+      right: 22px;
+      z-index: 5;
+      width: 54px;
+      height: 70px;
+      border: 2px solid rgba(244, 199, 103, 0.55);
+      border-radius: 9px;
+      background:
+        repeating-linear-gradient(
+          135deg,
+          #471c5b 0 7px,
+          #7a2c6b 7px 14px
+        );
+      box-shadow:
+        4px 4px 0 #21102a,
+        8px 8px 0 rgba(15, 5, 20, 0.8);
+    }
+
+    .shoe-stack span {
+      position: absolute;
+      right: -4px;
+      bottom: -25px;
+      width: 90px;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 10px;
+      text-align: right;
+    }
+
+    .zone {
+      position: relative;
+      z-index: 2;
+    }
+
+    .dealer-zone {
+      min-height: 190px;
+    }
+
+    .player-zone {
+      min-height: 220px;
+      margin-top: auto;
+    }
+
+    .zone-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 28px;
+      margin-bottom: 10px;
+    }
+
+    .zone-title {
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .total-badge,
+    .hand-state {
+      padding: 4px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--gold-2);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .cards {
+      display: flex;
+      min-height: var(--card-height);
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .playing-card {
+      position: relative;
+      width: var(--card-width);
+      height: var(--card-height);
+      flex: 0 0 auto;
+      border-radius: 9px;
+      transform-origin: center;
+      perspective: 900px;
+      filter: drop-shadow(0 9px 10px rgba(0, 0, 0, 0.27));
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 9px;
+      backface-visibility: hidden;
+    }
+
+    .card-front {
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      background:
+        linear-gradient(145deg, #fff, #f0eee8);
+      color: #151515;
+    }
+
+    .card-front.red {
+      color: #d53a45;
+    }
+
+    .card-back {
+      border: 3px solid #e8d79d;
+      background:
+        linear-gradient(45deg, rgba(255,255,255,.1) 25%, transparent 25%) 0 0 / 12px 12px,
+        linear-gradient(-45deg, rgba(255,255,255,.1) 25%, transparent 25%) 0 0 / 12px 12px,
+        linear-gradient(135deg, #572165, #271238);
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.13);
+    }
+
+    .card-corner {
+      position: absolute;
+      top: 6px;
+      left: 7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: clamp(14px, 2vw, 19px);
+      font-weight: 900;
+      line-height: 0.9;
+    }
+
+    .card-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      font-size: clamp(27px, 4vw, 42px);
+      transform: translate(-50%, -50%);
+    }
+
+    .table-status {
+      position: relative;
+      z-index: 3;
+      width: min(600px, 90%);
+      min-height: 38px;
+      margin: 8px auto;
+      padding: 8px 13px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.17);
+      color: rgba(255, 255, 255, 0.87);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .player-hands {
+      display: flex;
+      overflow-x: auto;
+      padding: 3px 2px 10px;
+      justify-content: center;
+      gap: 10px;
+      scrollbar-width: thin;
+    }
+
+    .hand-panel {
+      position: relative;
+      min-width: max(180px, calc(var(--card-width) * 2 + 28px));
+      padding: 8px 10px 10px;
+      border: 1px solid transparent;
+      border-radius: 17px;
+      background: rgba(0, 0, 0, 0.07);
+      transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .hand-panel.active {
+      border-color: rgba(244, 199, 103, 0.75);
+      background: rgba(244, 199, 103, 0.08);
+      box-shadow: 0 0 0 3px rgba(244, 199, 103, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .hand-panel.bust {
+      border-color: rgba(255, 107, 107, 0.55);
+      background: rgba(255, 107, 107, 0.08);
+    }
+
+    .hand-panel.stood {
+      opacity: 0.88;
+    }
+
+    .hand-header {
+      display: flex;
+      min-height: 24px;
+      margin-bottom: 6px;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 11px;
+    }
+
+    .empty-hand {
+      display: grid;
+      min-height: 120px;
+      place-items: center;
+      color: rgba(255, 255, 255, 0.45);
+      text-align: center;
+    }
+
+    .bank-bar {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      margin-top: 4px;
+      padding: 10px 12px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.17);
+    }
+
+    .bank-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bank-info strong {
+      color: var(--gold-2);
+      font-size: 15px;
+    }
+
+    .bet-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bet-controls button {
+      min-width: 38px;
+      min-height: 38px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.07);
+      cursor: pointer;
+    }
+
+    .bet-controls button:hover:not(:disabled) {
+      border-color: rgba(244, 199, 103, 0.6);
+      background: rgba(244, 199, 103, 0.11);
+    }
+
+    .bet-controls button:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .bet-quick {
+      display: flex;
+      gap: 4px;
+    }
+
+    .action-dock {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(13, 33, 29, 0.94);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.24);
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .action-button {
+      position: relative;
+      min-height: 58px;
+      padding: 8px 5px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.055);
+      cursor: pointer;
+      transition:
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        background 0.16s ease,
+        opacity 0.16s ease;
+    }
+
+    .action-button .key {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .action-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(244, 199, 103, 0.48);
+      background: rgba(244, 199, 103, 0.09);
+    }
+
+    .action-button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .action-button.recommended:not(:disabled) {
+      border-color: var(--gold);
+      background:
+        linear-gradient(145deg, rgba(244, 199, 103, 0.25), rgba(244, 199, 103, 0.08));
+      box-shadow: 0 0 0 4px rgba(244, 199, 103, 0.1);
+      animation: recommendationPulse 1.15s ease-in-out infinite alternate;
+    }
+
+    @keyframes recommendationPulse {
+      to {
+        box-shadow:
+          0 0 0 6px rgba(244, 199, 103, 0.04),
+          0 0 22px rgba(244, 199, 103, 0.24);
+      }
+    }
+
+    .deal-button {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 9px;
+      border: 1px solid rgba(244, 199, 103, 0.8);
+      border-radius: 15px;
+      background:
+        linear-gradient(135deg, #f5d27c, #dba73e);
+      box-shadow: 0 8px 25px rgba(218, 164, 57, 0.2);
+      color: #241a08;
+      font-weight: 900;
+      cursor: pointer;
+      transition:
+        transform 0.18s ease,
+        filter 0.18s ease;
+    }
+
+    .deal-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .deal-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .result-banner {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      z-index: 30;
+      display: flex;
+      width: min(540px, calc(100% - 28px));
+      min-height: 70px;
+      padding: 12px 14px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+      transform: translateX(-50%);
+      animation: resultEnter 0.42s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .result-banner[hidden] {
+      display: none;
+    }
+
+    .result-banner.win {
+      background: linear-gradient(135deg, #16835f, #0a4d3b);
+    }
+
+    .result-banner.loss {
+      background: linear-gradient(135deg, #a8333c, #621e28);
+    }
+
+    .result-banner.push {
+      background: linear-gradient(135deg, #2868a8, #183f68);
+    }
+
+    .result-banner strong {
+      display: block;
+      font-size: 19px;
+    }
+
+    .result-banner span {
+      display: block;
+      margin-top: 3px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+    }
+
+    .result-banner button {
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    @keyframes resultEnter {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -18px) scale(0.95);
+      }
+    }
+
+    .coach-panel {
+      position: sticky;
+      top: 14px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(17, 43, 38, 0.98), rgba(9, 27, 23, 0.98));
+      box-shadow: var(--shadow);
+    }
+
+    .coach-head {
+      padding: 17px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .coach-title {
+      display: flex;
+      margin-bottom: 12px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .coach-title h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .live-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--green);
+      font-size: 11px;
+    }
+
+    .live-dot::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+      content: "";
+    }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .select-row label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .select-row select {
+      width: 100%;
+      min-height: 42px;
+      margin-top: 5px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #0a211c;
+      color: var(--text);
+    }
+
+    .advice-box {
+      padding: 17px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .advice-action {
+      display: flex;
+      margin-bottom: 12px;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .advice-icon {
+      display: grid;
+      width: 55px;
+      height: 55px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid rgba(244, 199, 103, 0.5);
+      border-radius: 16px;
+      background: rgba(244, 199, 103, 0.1);
+      color: var(--gold);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .advice-action h3 {
+      margin: 0 0 4px;
+      font-size: 21px;
+    }
+
+    .advice-action p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .advice-why {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.83);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .strategy-path {
+      margin-top: 11px;
+      padding: 9px 10px;
+      border-left: 3px solid var(--gold);
+      border-radius: 0 9px 9px 0;
+      background: rgba(244, 199, 103, 0.07);
+      color: var(--gold-2);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.11);
+    }
+
+    .metric span {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .metric strong {
+      font-size: 16px;
+    }
+
+    .strategy-summary,
+    .count-box,
+    .coach-footer {
+      padding: 14px 17px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .strategy-summary h4,
+    .count-box h4 {
+      margin: 0 0 8px;
+      font-size: 13px;
+    }
+
+    .strategy-summary p,
+    .count-box p,
+    .coach-footer p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .count-box[hidden] {
+      display: none;
+    }
+
+    .count-values {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .count-value {
+      padding: 9px;
+      border-radius: 11px;
+      background: rgba(0, 0, 0, 0.14);
+      text-align: center;
+    }
+
+    .count-value span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .count-value strong {
+      display: block;
+      margin-top: 3px;
+      color: var(--gold-2);
+      font-size: 18px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 46px;
+      height: 26px;
+      flex: 0 0 auto;
+    }
+
+    .toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-track::after {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      transition: transform 0.2s ease;
+      content: "";
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: #2ba577;
+    }
+
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(20px);
+    }
+
+    .footer-note {
+      margin: 14px 4px 90px;
+      color: rgba(255, 255, 255, 0.42);
+      font-size: 11px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      z-index: 100;
+      max-width: min(470px, calc(100% - 30px));
+      padding: 11px 15px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 13px;
+      background: rgba(6, 20, 17, 0.96);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
+      color: white;
+      font-size: 13px;
+      transform: translate(-50%, 20px);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -20px;
+      z-index: 20;
+      width: 8px;
+      height: 14px;
+      border-radius: 2px;
+      pointer-events: none;
+      animation: confettiFall 1.7s ease-in forwards;
+    }
+
+    @keyframes confettiFall {
+      to {
+        transform: translate(var(--drift), 720px) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    dialog {
+      width: min(980px, calc(100% - 28px));
+      max-height: min(88vh, 900px);
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 22px;
+      background: #0b201b;
+      color: var(--text);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(5px);
+    }
+
+    .dialog-head {
+      display: flex;
+      padding: 16px 18px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      background: #102b25;
+    }
+
+    .dialog-head h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .dialog-close {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+    }
+
+    .dialog-body {
+      max-height: calc(88vh - 75px);
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .history-toolbar {
+      display: flex;
+      margin-bottom: 12px;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-empty {
+      padding: 50px 10px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .history-item {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .history-item summary {
+      display: flex;
+      padding: 13px 14px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .history-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .history-item summary small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+    }
+
+    .outcome-tag {
+      display: inline-flex;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .outcome-tag.win {
+      background: rgba(81, 223, 163, 0.14);
+      color: var(--green);
+    }
+
+    .outcome-tag.loss {
+      background: rgba(255, 107, 107, 0.14);
+      color: var(--red);
+    }
+
+    .outcome-tag.push {
+      background: rgba(114, 183, 255, 0.14);
+      color: var(--blue);
+    }
+
+    .history-detail {
+      padding: 0 14px 15px;
+      border-top: 1px solid var(--line);
+    }
+
+    .history-detail h4 {
+      margin: 15px 0 7px;
+      font-size: 13px;
+    }
+
+    .history-detail p,
+    .history-detail li {
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .decision-list {
+      display: grid;
+      gap: 7px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .decision {
+      padding: 9px 10px;
+      border-left: 3px solid var(--line);
+      border-radius: 0 9px 9px 0;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .decision.correct {
+      border-left-color: var(--green);
+    }
+
+    .decision.wrong {
+      border-left-color: var(--red);
+    }
+
+    .learn-tabs {
+      display: flex;
+      overflow-x: auto;
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+
+    .learn-tab {
+      min-height: 42px;
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.045);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .learn-tab.active {
+      border-color: rgba(244, 199, 103, 0.6);
+      background: rgba(244, 199, 103, 0.12);
+      color: var(--gold-2);
+    }
+
+    .learn-panel[hidden] {
+      display: none;
+    }
+
+    .lesson-grid,
+    .strategy-cards,
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .lesson-card,
+    .strategy-card,
+    .video-card {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .lesson-card h3,
+    .strategy-card h3,
+    .video-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .lesson-card p,
+    .strategy-card p,
+    .video-card p,
+    .learn-panel > p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .strategy-card.best {
+      border-color: rgba(81, 223, 163, 0.35);
+    }
+
+    .strategy-number {
+      display: block;
+      margin: 10px 0 4px;
+      color: var(--gold-2);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .video-card a {
+      display: inline-flex;
+      min-height: 40px;
+      margin-top: 12px;
+      padding: 8px 11px;
+      align-items: center;
+      border: 1px solid rgba(255, 107, 107, 0.4);
+      border-radius: 11px;
+      background: rgba(255, 107, 107, 0.08);
+      color: #ffb0b0;
+      text-decoration: none;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .strategy-table {
+      width: 100%;
+      min-width: 670px;
+      border-collapse: collapse;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .strategy-table caption {
+      padding: 11px;
+      background: rgba(244, 199, 103, 0.08);
+      color: var(--gold-2);
+      font-weight: 900;
+      text-align: left;
+    }
+
+    .strategy-table th,
+    .strategy-table td {
+      padding: 8px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.075);
+    }
+
+    .strategy-table th {
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .strategy-table td.code-H {
+      color: #8cc9ff;
+    }
+
+    .strategy-table td.code-S {
+      color: #7ce2b2;
+    }
+
+    .strategy-table td.code-D {
+      color: #ffd175;
+    }
+
+    .strategy-table td.code-P {
+      color: #d9a1ff;
+    }
+
+    .strategy-table td.code-R {
+      color: #ff8b8b;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 18px;
+    }
+
+    .legend span {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    @media (max-width: 1050px) {
+      .game-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .coach-panel {
+        position: relative;
+        top: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      :root {
+        --card-width: clamp(51px, 15vw, 65px);
+      }
+
+      .app {
+        padding: 10px;
+      }
+
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+      }
+
+      .brand p {
+        display: none;
+      }
+
+      .top-actions .text-action {
+        display: none;
+      }
+
+      .stat-strip {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+      }
+
+      .stat-card {
+        padding: 9px 10px;
+      }
+
+      .stat-card:nth-child(4),
+      .stat-card:nth-child(5) {
+        grid-column: span 1;
+      }
+
+      .table-shell,
+      .table-inner {
+        min-height: 570px;
+      }
+
+      .table-inner {
+        padding: 18px 10px 12px;
+      }
+
+      .rules-line {
+        padding-right: 55px;
+        justify-content: flex-start;
+      }
+
+      .rule-pill:nth-child(n + 4) {
+        display: none;
+      }
+
+      .shoe-stack {
+        top: 18px;
+        right: 15px;
+        width: 43px;
+        height: 57px;
+      }
+
+      .dealer-zone {
+        min-height: 165px;
+      }
+
+      .player-zone {
+        min-height: 210px;
+      }
+
+      .cards {
+        gap: 4px;
+      }
+
+      .player-hands {
+        justify-content: flex-start;
+      }
+
+      .hand-panel {
+        min-width: max(152px, calc(var(--card-width) * 2 + 18px));
+        padding-inline: 6px;
+      }
+
+      .bank-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .bank-info,
+      .bet-controls {
+        justify-content: center;
+      }
+
+      .bet-quick button:nth-child(3),
+      .bet-quick button:nth-child(4) {
+        display: none;
+      }
+
+      .action-dock {
+        position: sticky;
+        bottom: calc(7px + env(safe-area-inset-bottom));
+        z-index: 50;
+        padding: 8px;
+        border-radius: 17px;
+        backdrop-filter: blur(15px);
+      }
+
+      .action-buttons {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .action-button {
+        min-width: 0;
+        min-height: 53px;
+        padding: 5px 2px;
+        border-radius: 11px;
+        font-size: 12px;
+      }
+
+      .action-button .key {
+        display: none;
+      }
+
+      .deal-button {
+        min-height: 48px;
+      }
+
+      .result-banner {
+        top: 88px;
+      }
+
+      .select-row,
+      .lesson-grid,
+      .strategy-cards,
+      .video-grid {
+        grid-template-columns: 1fr;
+      }
+
+      dialog {
+        width: 100%;
+        max-width: 100%;
+        max-height: 90vh;
+        margin: auto 0 0;
+        border-radius: 22px 22px 0 0;
+      }
+
+      .dialog-body {
+        max-height: calc(90vh - 74px);
+        padding: 14px;
+      }
+
+      .footer-note {
+        margin-bottom: 125px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .stat-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .topbar {
+        gap: 6px;
+      }
+
+      .brand h1 {
+        font-size: 18px;
+      }
+
+      .action-button {
+        font-size: 11px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">♠</div>
+        <div>
+          <h1>Blackjack 大師訓練器</h1>
+          <p>逐步解析每個決定，而不只是告訴你輸贏</p>
+        </div>
+      </div>
+
+      <nav class="top-actions" aria-label="工具">
+        <button class="icon-button" id="soundButton" title="切換音效" aria-label="切換音效">
+          🔊
+        </button>
+        <button class="soft-button" id="historyButton">
+          <span aria-hidden="true">◷</span>
+          <span class="text-action"> 紀錄</span>
+        </button>
+        <button class="soft-button" id="learnButton">
+          <span aria-hidden="true">▤</span>
+          <span class="text-action"> 學習中心</span>
+        </button>
+      </nav>
+    </header>
+
+    <section class="stat-strip" aria-label="訓練成績">
+      <div class="stat-card">
+        <span class="stat-label">練習籌碼</span>
+        <strong class="stat-value" id="balanceStat">1,000</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">策略正確率</span>
+        <strong class="stat-value" id="accuracyStat">—</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">本局連勝</span>
+        <strong class="stat-value" id="streakStat">0</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">總局數</span>
+        <strong class="stat-value" id="roundsStat">0</strong>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">勝／負／和</span>
+        <strong class="stat-value" id="recordStat">0 / 0 / 0</strong>
+      </div>
+    </section>
+
+    <div class="game-layout">
+      <section class="game-column" aria-label="Blackjack 遊戲桌">
+        <div class="table-shell" id="tableShell">
+          <div class="felt-mark" aria-hidden="true"></div>
+
+          <div class="result-banner" id="resultBanner" hidden role="status">
+            <div>
+              <strong id="resultTitle"></strong>
+              <span id="resultSubtitle"></span>
+            </div>
+            <button id="resultDetailButton">查看解析</button>
+          </div>
+
+          <div class="shoe-stack" id="shoeStack" aria-label="牌靴">
+            <span id="shoeLabel">6.0 副牌</span>
+          </div>
+
+          <div class="table-inner">
+            <div class="rules-line" aria-label="本桌規則">
+              <span class="rule-pill">6 副牌</span>
+              <span class="rule-pill">Blackjack 3:2</span>
+              <span class="rule-pill">莊家軟 17 停牌</span>
+              <span class="rule-pill">分牌後可加倍</span>
+              <span class="rule-pill">後期投降</span>
+              <span class="rule-pill">最多 4 手</span>
+            </div>
+
+            <section class="zone dealer-zone">
+              <div class="zone-header">
+                <span class="zone-title">莊家</span>
+                <span class="total-badge" id="dealerTotal">—</span>
+              </div>
+              <div class="cards" id="dealerCards" aria-label="莊家的牌"></div>
+            </section>
+
+            <div class="table-status" id="tableStatus">
+              調整虛擬注碼，然後按「開始發牌」。
+            </div>
+
+            <section class="zone player-zone">
+              <div class="zone-header">
+                <span class="zone-title">玩家</span>
+              </div>
+
+              <div class="player-hands" id="playerHands">
+                <div class="empty-hand">
+                  <span>你的牌會出現在這裡</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="bank-bar">
+              <div class="bank-info">
+                <span>籌碼 <strong id="balanceValue">1,000</strong></span>
+                <span>本手注碼 <strong id="betValue">25</strong></span>
+              </div>
+
+              <div class="bet-controls" aria-label="調整注碼">
+                <button id="betMinus" aria-label="減少注碼">−</button>
+
+                <div class="bet-quick">
+                  <button data-bet="10">10</button>
+                  <button data-bet="25">25</button>
+                  <button data-bet="50">50</button>
+                  <button data-bet="100">100</button>
+                </div>
+
+                <button id="betPlus" aria-label="增加注碼">＋</button>
+                <button id="resetBank" hidden>重置籌碼</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-dock">
+          <div class="action-buttons">
+            <button class="action-button" id="hintButton">
+              提示
+              <span class="key">?</span>
+            </button>
+            <button class="action-button" data-action="H">
+              要牌
+              <span class="key">H</span>
+            </button>
+            <button class="action-button" data-action="S">
+              停牌
+              <span class="key">S</span>
+            </button>
+            <button class="action-button" data-action="D">
+              加倍
+              <span class="key">D</span>
+            </button>
+            <button class="action-button" data-action="P">
+              分牌
+              <span class="key">P</span>
+            </button>
+            <button class="action-button" data-action="R">
+              投降
+              <span class="key">R</span>
+            </button>
+          </div>
+
+          <button class="deal-button" id="dealButton">開始發牌</button>
+        </div>
+      </section>
+
+      <aside class="coach-panel" aria-label="策略導師">
+        <div class="coach-head">
+          <div class="coach-title">
+            <h2>策略導師</h2>
+            <span class="live-dot">即時分析</span>
+          </div>
+
+          <div class="select-row">
+            <label>
+              教學模式
+              <select id="coachMode">
+                <option value="mentor">導師：直接顯示</option>
+                <option value="practice">練習：按提示顯示</option>
+                <option value="exam">考試：先自行作答</option>
+              </select>
+            </label>
+
+            <label>
+              比較策略
+              <select id="strategyMode">
+                <option value="basic">基礎策略</option>
+                <option value="neverBust">絕不爆牌</option>
+                <option value="mimic">模仿莊家</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="advice-box">
+          <div class="advice-action">
+            <div class="advice-icon" id="adviceIcon">?</div>
+            <div>
+              <h3 id="adviceTitle">等待發牌</h3>
+              <p id="adviceSubtitle">我會逐步解釋最佳決策</p>
+            </div>
+          </div>
+
+          <p class="advice-why" id="adviceWhy">
+            基礎策略不是預測下一張牌，而是根據大量可能結果，選擇長期預期損失最低或回報最高的動作。
+          </p>
+
+          <div class="strategy-path" id="strategyPath">
+            判斷流程：是否 Blackjack → 是否可分牌 → 是否投降 → 軟牌／硬牌 → 對照莊家明牌。
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <span>現在要牌的爆牌機率</span>
+              <strong id="bustRisk">—</strong>
+            </div>
+            <div class="metric">
+              <span>莊家估計爆牌率</span>
+              <strong id="dealerBustRisk">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="strategy-summary">
+          <h4 id="strategySummaryTitle">基礎策略</h4>
+          <p id="strategySummaryText">
+            典型單手勝率約 42–43%，和局約 8–9%，在本桌規則下莊家優勢通常約 0.4–0.7%。
+          </p>
+        </div>
+
+        <div class="count-box" id="countBox" hidden>
+          <h4>Hi-Lo 數牌練習</h4>
+          <p>
+            2–6 計 +1、7–9 計 0、10–A 計 −1。真數約等於流水數除以剩餘副牌數。
+          </p>
+
+          <div class="count-values">
+            <div class="count-value">
+              <span>流水數</span>
+              <strong id="runningCount">0</strong>
+            </div>
+            <div class="count-value">
+              <span>真數</span>
+              <strong id="trueCount">0.0</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="coach-footer">
+          <div class="toggle-row">
+            <div>
+              <strong style="font-size:13px">數牌訓練</strong>
+              <p>只統計已公開的牌，不會偷看莊家暗牌。</p>
+            </div>
+
+            <label class="toggle">
+              <input type="checkbox" id="countToggle" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <p class="footer-note">
+      本工具只使用虛擬籌碼，目的為機率與決策訓練。正確策略優化的是長期預期值，不保證任何一局獲勝。
+      不同賭場規則會改變策略表與莊家優勢。
+    </p>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div
+    id="ariaLive"
+    class="sr-only"
+    aria-live="polite"
+    style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"
+  ></div>
+
+  <!-- 歷史紀錄 -->
+  <dialog id="historyDialog">
+    <div class="dialog-head">
+      <h2>牌局紀錄與勝負解析</h2>
+      <button class="dialog-close" data-close-dialog="historyDialog" aria-label="關閉">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="history-toolbar">
+        <span>保留最近 50 局，點擊牌局可展開原因與決策。</span>
+        <button class="soft-button" id="clearHistoryButton">清空紀錄</button>
+      </div>
+
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </dialog>
+
+  <!-- 學習中心 -->
+  <dialog id="learnDialog">
+    <div class="dialog-head">
+      <h2>Blackjack 大師學習中心</h2>
+      <button class="dialog-close" data-close-dialog="learnDialog" aria-label="關閉">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <nav class="learn-tabs">
+        <button class="learn-tab active" data-learn-tab="principles">核心原理</button>
+        <button class="learn-tab" data-learn-tab="charts">策略表</button>
+        <button class="learn-tab" data-learn-tab="comparison">策略勝率</button>
+        <button class="learn-tab" data-learn-tab="videos">教學影片</button>
+      </nav>
+
+      <section class="learn-panel" data-learn-panel="principles">
+        <div class="lesson-grid">
+          <article class="lesson-card">
+            <h3>1. 真正目標是最大化預期值</h3>
+            <p>
+              你不可能保證單局勝利。高手追求的是在大量牌局中，讓每個決策的平均損失最小。
+              即使採取完全正確的策略，也會因短期波動而連續輸牌。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>2. 莊家為什麼有優勢</h3>
+            <p>
+              玩家先行動。只要玩家先爆牌，即使莊家之後也會爆牌，玩家仍然先輸。
+              基礎策略的作用，就是盡量降低這個結構性劣勢。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>3. 莊家 2–6 是弱牌</h3>
+            <p>
+              莊家必須要牌直到至少 17 點。當明牌是 2–6，莊家較容易被迫要牌並爆牌，
+              因此玩家經常應停牌，讓莊家承擔風險。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>4. 莊家 7–A 是強牌</h3>
+            <p>
+              莊家較容易組成 17–21 點。玩家通常不能只等待莊家爆牌，而必須積極改善自己的點數，
+              即使這會增加自己的爆牌風險。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>5. 硬牌與軟牌</h3>
+            <p>
+              軟牌代表至少一張 A 仍可按 11 點計算，例如 A+6 是軟 17。
+              因為 A 必要時可改算 1 點，軟牌要牌時通常比較安全。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>6. 為什麼要加倍</h3>
+            <p>
+              加倍不是因為「感覺下一張是 10」，而是當你的牌對莊家明牌具有整體機率優勢時，
+              追加一倍注碼並只取一張牌，能提高長期預期回報。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>7. 為什麼 8、8 要分牌</h3>
+            <p>
+              硬 16 是極差的牌型。分開後，兩手都從 8 開始，通常比繼續以 16 對抗莊家更好。
+              分牌仍可能輸，但長期期望損失較小。
+            </p>
+          </article>
+
+          <article class="lesson-card">
+            <h3>8. 勝率不等於回報率</h3>
+            <p>
+              Blackjack 有和局、3:2 獎金、加倍與分牌。單手勝率較高不一定代表期望值較高，
+              因此比較策略時也要看莊家優勢，而不能只看贏了多少手。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="learn-panel" data-learn-panel="charts" hidden>
+        <p style="margin-bottom:14px">
+          以下策略適用於：6 副牌、莊家軟 17 停牌、分牌後可加倍、後期投降、Blackjack 3:2。
+          若賭場規則不同，部分格子會改變。
+        </p>
+
+        <div class="legend">
+          <span>H＝要牌</span>
+          <span>S＝停牌</span>
+          <span>D/H＝可加倍便加倍，否則要牌</span>
+          <span>D/S＝可加倍便加倍，否則停牌</span>
+          <span>P＝分牌</span>
+          <span>R/H＝可投降便投降，否則要牌</span>
+        </div>
+
+        <div id="strategyTables"></div>
+      </section>
+
+      <section class="learn-panel" data-learn-panel="comparison" hidden>
+        <div class="strategy-cards">
+          <article class="strategy-card best">
+            <h3>基礎策略</h3>
+            <span class="strategy-number">勝率約 42–43%</span>
+            <p>
+              和局約 8–9%；典型莊家優勢約 0.4–0.7%。這是本訓練器推薦的主要策略。
+            </p>
+          </article>
+
+          <article class="strategy-card">
+            <h3>絕不爆牌策略</h3>
+            <span class="strategy-number">勝率約 39–41%</span>
+            <p>
+              硬 12 以上一律停牌，看似安全，但會留下大量過低點數。
+              典型莊家優勢約 3.5–4.5%。
+            </p>
+          </article>
+
+          <article class="strategy-card">
+            <h3>模仿莊家策略</h3>
+            <span class="strategy-number">勝率約 38–40%</span>
+            <p>
+              17 以下要牌、17 以上停牌。忽略分牌、投降與加倍價值，
+              典型莊家優勢約 5–6%。
+            </p>
+          </article>
+
+          <article class="strategy-card">
+            <h3>基礎策略＋專業數牌</h3>
+            <span class="strategy-number">特定高真數時可轉正</span>
+            <p>
+              數牌不會保證勝利。結果取決於牌靴深度、下注差、規則、錯誤率與限制。
+              熟練玩家在有利牌況中可能取得約 0.5–1.5% 的條件優勢，但不是固定勝率。
+            </p>
+          </article>
+        </div>
+
+        <p style="margin-top:14px">
+          上述數字是常見規則下的近似範圍，不是獲利承諾。分牌後如何計算「一手」、
+          洗牌位置及牌桌規則，都會改變統計結果。
+        </p>
+      </section>
+
+      <section class="learn-panel" data-learn-panel="videos" hidden>
+        <div class="video-grid">
+          <article class="video-card">
+            <h3>Blackjack Apprenticeship：基礎策略</h3>
+            <p>適合建立完整決策框架，理解策略表與常見錯誤。</p>
+            <a
+              href="https://www.youtube.com/results?search_query=Blackjack+Apprenticeship+basic+strategy"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              前往 YouTube 搜尋
+            </a>
+          </article>
+
+          <article class="video-card">
+            <h3>Wizard of Odds：Blackjack 教學</h3>
+            <p>偏重機率、規則差異、莊家優勢與策略原理。</p>
+            <a
+              href="https://www.youtube.com/results?search_query=Wizard+of+Odds+blackjack+strategy"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              前往 YouTube 搜尋
+            </a>
+          </article>
+
+          <article class="video-card">
+            <h3>Hi-Lo 數牌入門</h3>
+            <p>學習流水數、真數換算及為什麼高牌對玩家較有利。</p>
+            <a
+              href="https://www.youtube.com/results?search_query=Hi-Lo+card+counting+blackjack+tutorial"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              前往 YouTube 搜尋
+            </a>
+          </article>
+
+          <article class="video-card">
+            <h3>中文 Blackjack 基礎策略</h3>
+            <p>搜尋中文說明，配合本訓練器的策略表練習。</p>
+            <a
+              href="https://www.youtube.com/results?search_query=Blackjack+21%E9%BB%9E+%E5%9F%BA%E7%A4%8E%E7%AD%96%E7%95%A5+%E6%95%99%E5%AD%B8"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              前往 YouTube 搜尋
+            </a>
+          </article>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+  <script>
+    "use strict";
+
+    const $ = (selector) => document.querySelector(selector);
+    const 
+
+$$ = (selector) => [...document.querySelectorAll(selector)];
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const STORAGE_KEY = "blackjack-master-trainer-v1";
+    const ACTION_NAMES = {
+      H: "要牌",
+      S: "停牌",
+      D: "加倍",
+      P: "分牌",
+      R: "投降"
+    };
+
+    const ACTION_ICONS = {
+      H: "＋",
+      S: "■",
+      D: "×2",
+      P: "⑵",
+      R: "½"
+    };
+
+    const STRATEGIES = {
+      basic: {
+        title: "基礎策略",
+        text: "典型單手勝率約 42–43%，和局約 8–9%，在本桌規則下莊家優勢通常約 0.4–0.7%。"
+      },
+      neverBust: {
+        title: "絕不爆牌",
+        text: "硬 12 以上一律停牌。單手勝率約 39–41%，但留下太多低點數，典型莊家優勢約 3.5–4.5%。"
+      },
+      mimic: {
+        title: "模仿莊家",
+        text: "17 以下要牌、17 以上停牌。單手勝率約 38–40%，忽略加倍與分牌價值，典型莊家優勢約 5–6%。"
+      }
+    };
+
+    const DEALER_BUST_RATES = {
+      2: 35.4,
+      3: 37.4,
+      4: 40.3,
+      5: 42.9,
+      6: 42.1,
+      7: 26.2,
+      8: 24.4,
+      9: 23.0,
+      10: 21.2,
+      11: 16.7
+    };
+
+    const defaultData = {
+      balance: 1000,
+      bet: 25,
+      sound: true,
+      coachMode: "mentor",
+      strategyMode: "basic",
+      countEnabled: false,
+      stats: {
+        rounds: 0,
+        wins: 0,
+        losses: 0,
+        pushes: 0,
+        streak: 0,
+        bestStreak: 0,
+        decisions: 0,
+        correct: 0
+      },
+      history: []
+    };
+
+    function loadData() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        return {
+          ...defaultData,
+          ...stored,
+          stats: {
+            ...defaultData.stats,
+            ...(stored.stats || {})
+          },
+          history: Array.isArray(stored.history) ? stored.history : []
+        };
+      } catch {
+        return structuredClone(defaultData);
+      }
+    }
+
+    let saved = loadData();
+    let balance = Number(saved.balance) || 1000;
+    let bet = Number(saved.bet) || 25;
+    let stats = saved.stats;
+    let history = saved.history;
+
+    const state = {
+      phase: "idle",
+      busy: false,
+      shoe: [],
+      runningCount: 0,
+      dealerHand: [],
+      holeRevealed: false,
+      playerHands: [],
+      activeHand: 0,
+      roundStartBalance: 0,
+      totalWager: 0,
+      roundDecisions: [],
+      hintRevealed: false,
+      status: "調整虛擬注碼，然後按「開始發牌」。",
+      lastRecordId: null,
+      coachMode: saved.coachMode || "mentor",
+      strategyMode: saved.strategyMode || "basic",
+      countEnabled: Boolean(saved.countEnabled),
+      sound: saved.sound !== false
+    };
+
+    const ui = {
+      tableShell: $("#tableShell"),
+      shoeStack: $("#shoeStack"),
+      shoeLabel: $("#shoeLabel"),
+      dealerCards: $("#dealerCards"),
+      dealerTotal: $("#dealerTotal"),
+      playerHands: $("#playerHands"),
+      tableStatus: $("#tableStatus"),
+      balanceValue: $("#balanceValue"),
+      balanceStat: $("#balanceStat"),
+      betValue: $("#betValue"),
+      accuracyStat: $("#accuracyStat"),
+      streakStat: $("#streakStat"),
+      roundsStat: $("#roundsStat"),
+      recordStat: $("#recordStat"),
+      betMinus: $("#betMinus"),
+      betPlus: $("#betPlus"),
+      betButtons: $$
+
+("[data-bet]"),
+      resetBank: $("#resetBank"),
+      dealButton: $("#dealButton"),
+      hintButton: $("#hintButton"),
+      actionButtons: 
+
+$$("[data-action]"),
+      resultBanner: $("#resultBanner"),
+      resultTitle: $("#resultTitle"),
+      resultSubtitle: $("#resultSubtitle"),
+      resultDetailButton: $("#resultDetailButton"),
+      adviceIcon: $("#adviceIcon"),
+      adviceTitle: $("#adviceTitle"),
+      adviceSubtitle: $("#adviceSubtitle"),
+      adviceWhy: $("#adviceWhy"),
+      strategyPath: $("#strategyPath"),
+      bustRisk: $("#bustRisk"),
+      dealerBustRisk: $("#dealerBustRisk"),
+      strategySummaryTitle: $("#strategySummaryTitle"),
+      strategySummaryText: $("#strategySummaryText"),
+      coachMode: $("#coachMode"),
+      strategyMode: $("#strategyMode"),
+      countToggle: $("#countToggle"),
+      countBox: $("#countBox"),
+      runningCount: $("#runningCount"),
+      trueCount: $("#trueCount"),
+      soundButton: $("#soundButton"),
+      toast: $("#toast"),
+      ariaLive: $("#ariaLive"),
+      historyDialog: $("#historyDialog"),
+      historyList: $("#historyList"),
+      learnDialog: $("#learnDialog")
+    };
+
+    let audioContext = null;
+    let toastTimer = null;
+    let cardSerial = 0;
+
+    function persist() {
+      const data = {
+        balance,
+        bet,
+        sound: state.sound,
+        coachMode: state.coachMode,
+        strategyMode: state.strategyMode,
+        countEnabled: state.countEnabled,
+        stats,
+        history
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function formatNumber(number) {
+      const value = Number(number);
+      return value.toLocaleString("zh-Hant", {
+        minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+        maximumFractionDigits: 1
+      });
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      ui.toast.textContent = message;
+      ui.toast.classList.add("show");
+
+      toastTimer = setTimeout(() => {
+        ui.toast.classList.remove("show");
+      }, 2400);
+    }
+
+    function announce(message) {
+      state.status = message;
+      ui.tableStatus.textContent = message;
+      ui.ariaLive.textContent = message;
+    }
+
+    function tone(frequency, duration = 0.08, type = "sine", volume = 0.035) {
+      if (!state.sound) return;
+
+      try {
+        audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.value = frequency;
+        gain.gain.value = volume;
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start();
+        gain.gain.exponentialRampToValueAtTime(
+          0.0001,
+          audioContext.currentTime + duration
+        );
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch {
+        // 音效不是遊戲必要功能，失敗時忽略。
+      }
+    }
+
+    function playResultSound(outcome) {
+      if (outcome === "win") {
+        tone(523, 0.12);
+        setTimeout(() => tone(659, 0.13), 120);
+        setTimeout(() => tone(784, 0.18), 250);
+      } else if (outcome === "loss") {
+        tone(260, 0.15, "triangle");
+        setTimeout(() => tone(195, 0.22, "triangle"), 140);
+      } else {
+        tone(440, 0.1);
+        setTimeout(() => tone(440, 0.12), 130);
+      }
+    }
+
+    function vibrate(pattern) {
+      if ("vibrate" in navigator) {
+        navigator.vibrate(pattern);
+      }
+    }
+
+    function buildShoe() {
+      const suits = [
+        { key: "S", symbol: "♠", red: false },
+        { key: "H", symbol: "♥", red: true },
+        { key: "D", symbol: "♦", red: true },
+        { key: "C", symbol: "♣", red: false }
+      ];
+
+      const ranks = [
+        { rank: "A", value: 11 },
+        { rank: "2", value: 2 },
+        { rank: "3", value: 3 },
+        { rank: "4", value: 4 },
+        { rank: "5", value: 5 },
+        { rank: "6", value: 6 },
+        { rank: "7", value: 7 },
+        { rank: "8", value: 8 },
+        { rank: "9", value: 9 },
+        { rank: "10", value: 10 },
+        { rank: "J", value: 10 },
+        { rank: "Q", value: 10 },
+        { rank: "K", value: 10 }
+      ];
+
+      const cards = [];
+
+      for (let deck = 0; deck < 6; deck++) {
+        for (const suit of suits) {
+          for (const rank of ranks) {
+            cards.push({
+              id: `card-${deck}-${suit.key}-${rank.rank}-${cardSerial++}`,
+              rank: rank.rank,
+              value: rank.value,
+              suit: suit.symbol,
+              red: suit.red,
+              counted: false
+            });
+          }
+        }
+      }
+
+      for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+
+      state.shoe = cards;
+      state.runningCount = 0;
+    }
+
+    function ensureShoe() {
+      if (state.shoe.length < 75) {
+        buildShoe();
+        showToast("牌靴已重新洗牌，Hi-Lo 流水數歸零。");
+        return true;
+      }
+
+      return false;
+    }
+
+    function drawCard() {
+      if (!state.shoe.length) {
+        throw new Error("牌靴已空。");
+      }
+
+      return state.shoe.pop();
+    }
+
+    function exposeCard(card) {
+      if (!card || card.counted) return;
+
+      card.counted = true;
+
+      if (["2", "3", "4", "5", "6"].includes(card.rank)) {
+        state.runningCount += 1;
+      } else if (["10", "J", "Q", "K", "A"].includes(card.rank)) {
+        state.runningCount -= 1;
+      }
+    }
+
+    function handValue(cards) {
+      let total = 0;
+      let acesAsEleven = 0;
+
+      for (const card of cards) {
+        total += card.value;
+
+        if (card.rank === "A") {
+          acesAsEleven += 1;
+        }
+      }
+
+      while (total > 21 && acesAsEleven > 0) {
+        total -= 10;
+        acesAsEleven -= 1;
+      }
+
+      return {
+        total,
+        soft: acesAsEleven > 0,
+        blackjack: cards.length === 2 && total === 21
+      };
+    }
+
+    function isNaturalBlackjack(hand) {
+      const value = handValue(hand.cards);
+      return !hand.fromSplit && value.blackjack;
+    }
+
+    function cardPoint(card) {
+      return card.rank === "A" ? 11 : card.value;
+    }
+
+    function cardLabel(card) {
+      return `${card.rank}${card.suit}`;
+    }
+
+    function cardsLabel(cards) {
+      return cards.map(cardLabel).join(" ");
+    }
+
+    function handTypeLabel(cards) {
+      const value = handValue(cards);
+
+      if (value.total > 21) return `爆牌 ${value.total}`;
+      if (value.blackjack) return "Blackjack";
+      return `${value.soft ? "軟 " : "硬 "}${value.total}`;
+    }
+
+    function createHand(cards, handBet, fromSplit = false, splitAces = false) {
+      return {
+        cards,
+        bet: handBet,
+        fromSplit,
+        splitAces,
+        status: "playing",
+        decisionCount: 0,
+        result: null,
+        reason: "",
+        payout: 0
+      };
+    }
+
+    function createCardElement(card, hidden = false) {
+      const element = document.createElement("div");
+      element.className = "playing-card";
+      element.dataset.cardId = card.id;
+
+      if (hidden) {
+        element.setAttribute("aria-label", "莊家暗牌");
+        element.innerHTML = '<div class="card-back"></div>';
+        return element;
+      }
+
+      element.setAttribute("aria-label", cardLabel(card));
+      element.innerHTML = `
+        <div class="card-front ${card.red ? "red" : ""}">
+          <div class="card-corner">
+            <span>${card.rank}</span>
+            <span>${card.suit}</span>
+          </div>
+          <div class="card-center">${card.suit}</div>
+        </div>
+      `;
+
+      return element;
+    }
+
+    async function animateCardFromShoe(cardId) {
+      const card = document.querySelector(`[data-card-id="${cardId}"]`);
+      if (!card) return;
+
+      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reducedMotion) return;
+
+      const sourceRect = ui.shoeStack.getBoundingClientRect();
+      const targetRect = card.getBoundingClientRect();
+
+      const dx =
+        sourceRect.left + sourceRect.width / 2 -
+        (targetRect.left + targetRect.width / 2);
+
+      const dy =
+        sourceRect.top + sourceRect.height / 2 -
+        (targetRect.top + targetRect.height / 2);
+
+      const animation = card.animate(
+        [
+          {
+            transform: `translate(${dx}px, ${dy}px) scale(.72) rotate(10deg)`,
+            opacity: 0.15
+          },
+          {
+            transform: "translate(0, 0) scale(1) rotate(0deg)",
+            opacity: 1
+          }
+        ],
+        {
+          duration: 430,
+          easing: "cubic-bezier(.18,.82,.24,1)",
+          fill: "both"
+        }
+      );
+
+      tone(460 + Math.random() * 80, 0.045, "triangle", 0.018);
+
+      try {
+        await animation.finished;
+      } catch {
+        // DOM 更新導致動畫取消時不影響牌局。
+      }
+    }
+
+    async function animateReveal(cardId) {
+      const card = document.querySelector(`[data-card-id="${cardId}"]`);
+      if (!card) return;
+
+      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reducedMotion) return;
+
+      const animation = card.animate(
+        [
+          { transform: "rotateY(90deg) scale(.94)", opacity: 0.45 },
+          { transform: "rotateY(0deg) scale(1)", opacity: 1 }
+        ],
+        {
+          duration: 380,
+          easing: "cubic-bezier(.25,.7,.2,1)"
+        }
+      );
+
+      tone(620, 0.07, "triangle", 0.025);
+
+      try {
+        await animation.finished;
+      } catch {
+        // 忽略動畫取消。
+      }
+    }
+
+    function renderDealer() {
+      ui.dealerCards.innerHTML = "";
+
+      state.dealerHand.forEach((card, index) => {
+        const hidden = index === 1 && !state.holeRevealed;
+        ui.dealerCards.appendChild(createCardElement(card, hidden));
+      });
+
+      if (!state.dealerHand.length) {
+        ui.dealerTotal.textContent = "—";
+        return;
+      }
+
+      if (!state.holeRevealed && state.dealerHand.length >= 2) {
+        ui.dealerTotal.textContent = `明牌 ${state.dealerHand[0].rank}`;
+        return;
+      }
+
+      const value = handValue(state.dealerHand);
+      ui.dealerTotal.textContent = value.soft
+        ? `軟 ${value.total}`
+        : String(value.total);
+    }
+
+    function renderPlayerHands() {
+      ui.playerHands.innerHTML = "";
+
+      if (!state.playerHands.length) {
+        ui.playerHands.innerHTML = `
+          <div class="empty-hand">
+            <span>你的牌會出現在這裡</span>
+          </div>
+        `;
+        return;
+      }
+
+      state.playerHands.forEach((hand, index) => {
+        const panel = document.createElement("article");
+        const value = handValue(hand.cards);
+
+        panel.className = [
+          "hand-panel",
+          index === state.activeHand && state.phase === "player" ? "active" : "",
+          hand.status === "bust" ? "bust" : "",
+          hand.status === "stood" ? "stood" : ""
+        ].filter(Boolean).join(" ");
+
+        let statusText = handTypeLabel(hand.cards);
+
+        if (hand.status === "surrendered") statusText = "已投降";
+        if (hand.result === "win") statusText += " · 勝";
+        if (hand.result === "loss") statusText += " · 負";
+        if (hand.result === "push") statusText += " · 和";
+
+        panel.innerHTML = `
+          <div class="hand-header">
+            <span>手牌 ${index + 1} · 注碼 ${formatNumber(hand.bet)}</span>
+            <span class="hand-state">${statusText}</span>
+          </div>
+          <div class="cards"></div>
+        `;
+
+        const cardArea = panel.querySelector(".cards");
+
+        hand.cards.forEach((card) => {
+          cardArea.appendChild(createCardElement(card));
+        });
+
+        if (!hand.cards.length) {
+          cardArea.innerHTML = '<span style="color:rgba(255,255,255,.35)">等待發牌</span>';
+        }
+
+        if (value.total > 21) {
+          panel.classList.add("bust");
+        }
+
+        ui.playerHands.appendChild(panel);
+      });
+    }
+
+    function canHit(hand = state.playerHands[state.activeHand]) {
+      return Boolean(
+        hand &&
+        state.phase === "player" &&
+        hand.status === "playing" &&
+        !hand.splitAces
+      );
+    }
+
+    function canStand(hand = state.playerHands[state.activeHand]) {
+      return Boolean(
+        hand &&
+        state.phase === "player" &&
+        hand.status === "playing"
+      );
+    }
+
+    function canDouble(hand = state.playerHands[state.activeHand]) {
+      return Boolean(
+        hand &&
+        state.phase === "player" &&
+        hand.status === "playing" &&
+        hand.cards.length === 2 &&
+        !hand.splitAces &&
+        balance >= hand.bet
+      );
+    }
+
+    function canSplit(hand = state.playerHands[state.activeHand]) {
+      return Boolean(
+        hand &&
+        state.phase === "player" &&
+        hand.status === "playing" &&
+        hand.cards.length === 2 &&
+        cardPoint(hand.cards[0]) === cardPoint(hand.cards[1]) &&
+        state.playerHands.length < 4 &&
+        balance >= hand.bet &&
+        !hand.splitAces
+      );
+    }
+
+    function canSurrender(hand = state.playerHands[state.activeHand]) {
+      return Boolean(
+        hand &&
+        state.phase === "player" &&
+        hand.status === "playing" &&
+        hand.cards.length === 2 &&
+        hand.decisionCount === 0 &&
+        !hand.fromSplit &&
+        state.playerHands.length === 1
+      );
+    }
+
+    function renderControls() {
+      const available = {
+        H: canHit(),
+        S: canStand(),
+        D: canDouble(),
+        P: canSplit(),
+        R: canSurrender()
+      };
+
+      ui.actionButtons.forEach((button) => {
+        const action = button.dataset.action;
+        button.disabled = state.busy || !available[action];
+      });
+
+      ui.hintButton.disabled =
+        state.busy ||
+        state.phase !== "player" ||
+        !state.playerHands[state.activeHand];
+
+      const canChangeBet =
+        !state.busy &&
+        (state.phase === "idle" || state.phase === "over");
+
+      ui.betMinus.disabled = !canChangeBet;
+      ui.betPlus.disabled = !canChangeBet;
+      ui.betButtons.forEach((button) => {
+        button.disabled = !canChangeBet;
+      });
+
+      const canDeal =
+        !state.busy &&
+        (state.phase === "idle" || state.phase === "over");
+
+      ui.dealButton.disabled = !canDeal;
+
+      if (balance < 10) {
+        ui.dealButton.textContent = "重置練習籌碼";
+        ui.resetBank.hidden = false;
+      } else {
+        ui.dealButton.textContent =
+          state.phase === "over" ? "再來一局" : "開始發牌";
+        ui.resetBank.hidden = true;
+      }
+    }
+
+    function unseenCards() {
+      const cards = [...state.shoe];
+
+      if (
+        state.dealerHand[1] &&
+        !state.holeRevealed
+      ) {
+        cards.push(state.dealerHand[1]);
+      }
+
+      return cards;
+    }
+
+    function calculateBustRisk(cards) {
+      const pool = unseenCards();
+
+      if (!pool.length) return 0;
+
+      let busts = 0;
+
+      for (const card of pool) {
+        if (handValue([...cards, card]).total > 21) {
+          busts += 1;
+        }
+      }
+
+      return (busts / pool.length) * 100;
+    }
+
+    function doubleChoice(fallback, canUseDouble, path) {
+      if (canUseDouble) {
+        return {
+          action: "D",
+          fallback,
+          path
+        };
+      }
+
+      return {
+        action: fallback,
+        fallback,
+        path: `${path}；目前不可加倍，所以改為${ACTION_NAMES[fallback]}`
+      };
+    }
+
+    function baseAdviceResult(action, hand, dealerValue, path) {
+      const value = handValue(hand.cards);
+      const handName = `${value.soft ? "軟" : "硬"} ${value.total}`;
+      const dealerName = dealerValue === 11 ? "A" : dealerValue;
+      const dealerWeak = dealerValue >= 2 && dealerValue <= 6;
+      let why = "";
+
+      if (action === "H") {
+        if (value.soft) {
+          why =
+            `${handName} 至少有一張 A 可由 11 改算 1，因此要牌的安全空間比同點數硬牌大。` +
+            `莊家明牌 ${dealerName}，改善牌力的長期價值高於立即停牌。`;
+        } else if (dealerWeak) {
+          why =
+            `雖然莊家 ${dealerName} 屬弱牌，但你的硬 ${value.total} 太低，` +
+            `停牌通常無法擊敗莊家最終的 17–21 點，因此仍需要牌。`;
+        } else {
+          why =
+            `莊家 ${dealerName} 屬較強明牌。硬 ${value.total} 若直接停牌，` +
+            `被莊家較高點數擊敗的機率很高，因此基礎策略選擇承擔要牌風險。`;
+        }
+      }
+
+      if (action === "S") {
+        if (dealerWeak) {
+          why =
+            `莊家 ${dealerName} 必須持續要牌直到至少 17 點，存在較高爆牌機率。` +
+            `你的 ${handName} 此時應把風險交給莊家，而不是主動增加自己的爆牌機率。`;
+        } else {
+          why =
+            `你的 ${handName} 已具有足夠攤牌價值。繼續要牌帶來的爆牌風險，` +
+            `大於改善點數可能得到的收益。`;
+        }
+      }
+
+      if (action === "D") {
+        why =
+          `你的 ${handName} 對莊家 ${dealerName} 具有較好的整體機率優勢。` +
+          `加倍不是預測下一張牌，而是在有利狀態追加一倍注碼，並且只取一張牌，以提高長期預期回報。`;
+      }
+
+      if (action === "P") {
+        const rank = hand.cards[0].rank;
+
+        if (rank === "A") {
+          why =
+            "一手中的兩張 A 通常只能有效使用其中一張作 11 點。分開後，每手都從 A 開始，能創造兩個強勢起點。";
+        } else if (cardPoint(hand.cards[0]) === 8) {
+          why =
+            "8、8 合起來是硬 16，屬於最差牌型之一。分牌把一個很差的 16，變成兩手從 8 開始的牌，長期期望損失較低。";
+        } else {
+          why =
+            `這組對子對莊家 ${dealerName} 適合分牌。分開後的兩個起始牌型，` +
+            "長期期望值高於把它們當作一手硬牌繼續。";
+        }
+      }
+
+      if (action === "R") {
+        why =
+          `這是高損失局面：你的 ${handName} 對莊家 ${dealerName}。` +
+          "繼續打完的預期損失通常超過半注，因此後期投降可收回一半注碼，降低長期損失。";
+      }
+
+      return {
+        action,
+        title: ACTION_NAMES[action],
+        subtitle: `${handName} 對莊家 ${dealerName}`,
+        why,
+        path
+      };
+    }
+
+    function getBasicAdvice(hand, dealerCard) {
+      const dealer = dealerCard.rank === "A" ? 11 : dealerCard.value;
+      const value = handValue(hand.cards);
+      const splitAvailable = canSplit(hand);
+      const doubleAvailable = canDouble(hand);
+      const surrenderAvailable = canSurrender(hand);
+
+      if (value.total >= 21) {
+        return baseAdviceResult(
+          "S",
+          hand,
+          dealer,
+          "點數已達 21 → 停牌"
+        );
+      }
+
+      if (hand.cards.length === 2 &&
+          cardPoint(hand.cards[0]) === cardPoint(hand.cards[1])) {
+        const pair = cardPoint(hand.cards[0]);
+        let pairAction = null;
+        let pairPath = "";
+
+        if (pair === 11) {
+          pairAction = "P";
+          pairPath = "對子 → A、A → 始終分牌";
+        } else if (pair === 10) {
+          pairAction = "S";
+          pairPath = "對子 → 10 點對子 → 保留 20 點";
+        } else if (pair === 9) {
+          pairAction = [2, 3, 4, 5, 6, 8, 9].includes(dealer) ? "P" : "S";
+          pairPath = `對子 → 9、9 → 莊家 ${dealer === 11 ? "A" : dealer}`;
+        } else if (pair === 8) {
+          pairAction = "P";
+          pairPath = "對子 → 8、8 → 始終分牌";
+        } else if (pair === 7) {
+          pairAction = dealer >= 2 && dealer <= 7 ? "P" : "H";
+          pairPath = "對子 → 7、7 → 對 2–7 分牌";
+        } else if (pair === 6) {
+          pairAction = dealer >= 2 && dealer <= 6 ? "P" : "H";
+          pairPath = "對子 → 6、6 → 對 2–6 分牌";
+        } else if (pair === 4) {
+          pairAction = [5, 6].includes(dealer) ? "P" : "H";
+          pairPath = "對子 → 4、4 → 只對 5–6 分牌";
+        } else if ([2, 3].includes(pair)) {
+          pairAction = dealer >= 2 && dealer <= 7 ? "P" : "H";
+          pairPath = `對子 → ${pair}、${pair} → 對 2–7 分牌`;
+        }
+
+        if (pairAction === "P" && splitAvailable) {
+          return baseAdviceResult("P", hand, dealer, pairPath);
+        }
+
+        if (pairAction && pairAction !== "P") {
+          return baseAdviceResult(pairAction, hand, dealer, pairPath);
+        }
+      }
+
+      if (surrenderAvailable && !value.soft) {
+        if (value.total === 16 && [9, 10, 11].includes(dealer)) {
+          return baseAdviceResult(
+            "R",
+            hand,
+            dealer,
+            "硬牌 → 16 對 9、10、A → 可投降時投降"
+          );
+        }
+
+        if (value.total === 15 && dealer === 10) {
+          return baseAdviceResult(
+            "R",
+            hand,
+            dealer,
+            "硬牌 → 15 對 10 → 可投降時投降"
+          );
+        }
+      }
+
+      if (value.soft) {
+        let choice;
+
+        if (value.total <= 12) {
+          choice = { action: "H", path: "軟牌 → 軟 12 以下 → 要牌" };
+        } else if ([13, 14].includes(value.total)) {
+          choice = [5, 6].includes(dealer)
+            ? doubleChoice("H", doubleAvailable, "軟牌 → A,2／A,3 對 5–6 → 加倍")
+            : { action: "H", path: "軟牌 → A,2／A,3 → 其他明牌要牌" };
+        } else if ([15, 16].includes(value.total)) {
+          choice = [4, 5, 6].includes(dealer)
+            ? doubleChoice("H", doubleAvailable, "軟牌 → A,4／A,5 對 4–6 → 加倍")
+            : { action: "H", path: "軟牌 → A,4／A,5 → 其他明牌要牌" };
+        } else if (value.total === 17) {
+          choice = [3, 4, 5, 6].includes(dealer)
+            ? doubleChoice("H", doubleAvailable, "軟牌 → A,6 對 3–6 → 加倍")
+            : { action: "H", path: "軟牌 → A,6 → 其他明牌要牌" };
+        } else if (value.total === 18) {
+          if (dealer === 2 || [7, 8].includes(dealer)) {
+            choice = { action: "S", path: "軟牌 → A,7 對 2、7、8 → 停牌" };
+          } else if ([3, 4, 5, 6].includes(dealer)) {
+            choice = doubleChoice(
+              "S",
+              doubleAvailable,
+              "軟牌 → A,7 對 3–6 → 可加倍便加倍，否則停牌"
+            );
+          } else {
+            choice = { action: "H", path: "軟牌 → A,7 對 9、10、A → 要牌" };
+          }
+        } else {
+          choice = { action: "S", path: "軟 19 以上 → 停牌" };
+        }
+
+        return baseAdviceResult(
+          choice.action,
+          hand,
+          dealer,
+          choice.path
+        );
+      }
+
+      let choice;
+
+      if (value.total <= 8) {
+        choice = { action: "H", path: "硬牌 → 8 以下 → 要牌" };
+      } else if (value.total === 9) {
+        choice = dealer >= 3 && dealer <= 6
+          ? doubleChoice("H", doubleAvailable, "硬牌 → 9 對 3–6 → 加倍")
+          : { action: "H", path: "硬牌 → 9 → 其他明牌要牌" };
+      } else if (value.total === 10) {
+        choice = dealer >= 2 && dealer <= 9
+          ? doubleChoice("H", doubleAvailable, "硬牌 → 10 對 2–9 → 加倍")
+          : { action: "H", path: "硬牌 → 10 對 10／A → 要牌" };
+      } else if (value.total === 11) {
+        choice = dealer >= 2 && dealer <= 10
+          ? doubleChoice("H", doubleAvailable, "硬牌 → 11 對 2–10 → 加倍")
+          : { action: "H", path: "硬牌 → 11 對 A → 要牌" };
+      } else if (value.total === 12) {
+        choice = dealer >= 4 && dealer <= 6
+          ? { action: "S", path: "硬牌 → 12 對 4–6 → 停牌" }
+          : { action: "H", path: "硬牌 → 12 對 2、3、7–A → 要牌" };
+      } else if (value.total >= 13 && value.total <= 16) {
+        choice = dealer >= 2 && dealer <= 6
+          ? { action: "S", path: `硬牌 → ${value.total} 對 2–6 → 停牌` }
+          : { action: "H", path: `硬牌 → ${value.total} 對 7–A → 要牌` };
+      } else {
+        choice = { action: "S", path: "硬牌 → 17 以上 → 停牌" };
+      }
+
+      return baseAdviceResult(
+        choice.action,
+        hand,
+        dealer,
+        choice.path
+      );
+    }
+
+    function getAlternativeAdvice(hand, dealerCard, strategy) {
+      const dealer = dealerCard.rank === "A" ? 11 : dealerCard.value;
+      const value = handValue(hand.cards);
+      let action;
+      let path;
+      let why;
+
+      if (strategy === "neverBust") {
+        if (value.soft) {
+          action = value.total >= 18 ? "S" : "H";
+        } else {
+          action = value.total >= 12 ? "S" : "H";
+        }
+
+        path = `絕不爆牌規則 → ${value.soft ? "軟" : "硬"} ${value.total} → ${ACTION_NAMES[action]}`;
+        why =
+          action === "S"
+            ? "這個策略只著重避免玩家爆牌，因此在目前點數停牌。它看似安全，但常會以過低點數進入攤牌，長期明顯弱於基礎策略。"
+            : "目前點數低於此策略的停牌門檻，因此繼續要牌。此策略不會充分利用加倍、分牌與投降。";
+      } else {
+        action = value.total >= 17 ? "S" : "H";
+        path = `模仿莊家 → ${value.total < 17 ? "未達 17" : "已達 17"} → ${ACTION_NAMES[action]}`;
+        why =
+          "模仿莊家策略固定在 17 以下要牌、17 以上停牌。玩家先行動且會先爆牌，不能因此取得與莊家相同的條件，所以長期表現較差。";
+      }
+
+      return {
+        action,
+        title: ACTION_NAMES[action],
+        subtitle: `${value.soft ? "軟" : "硬"} ${value.total} 對莊家 ${dealer === 11 ? "A" : dealer}`,
+        why,
+        path
+      };
+    }
+
+    function currentAdvice() {
+      const hand = state.playerHands[state.activeHand];
+      const dealerCard = state.dealerHand[0];
+
+      if (!hand || !dealerCard || state.phase !== "player") {
+        return null;
+      }
+
+      if (state.strategyMode === "basic") {
+        return getBasicAdvice(hand, dealerCard);
+      }
+
+      return getAlternativeAdvice(
+        hand,
+        dealerCard,
+        state.strategyMode
+      );
+    }
+
+    function renderCoach() {
+      ui.actionButtons.forEach((button) => {
+        button.classList.remove("recommended");
+      });
+
+      const strategy = STRATEGIES[state.strategyMode];
+      ui.strategySummaryTitle.textContent = strategy.title;
+      ui.strategySummaryText.textContent = strategy.text;
+
+      const hand = state.playerHands[state.activeHand];
+      const advice = currentAdvice();
+
+      if (!advice || !hand) {
+        ui.adviceIcon.textContent = "?";
+        ui.adviceTitle.textContent =
+          state.phase === "dealer" ? "莊家行動中" : "等待你的牌";
+        ui.adviceSubtitle.textContent =
+          state.phase === "over"
+            ? "查看本局紀錄了解每個決策"
+            : "發牌後會分析手型與莊家明牌";
+        ui.adviceWhy.textContent =
+          "高手先判斷牌型，再觀察莊家明牌，最後確認分牌、加倍與投降是否可用。正確策略優化長期預期值，不保證單局結果。";
+        ui.strategyPath.textContent =
+          "判斷流程：Blackjack → 對子 → 投降 → 軟牌／硬牌 → 莊家明牌。";
+        ui.bustRisk.textContent = "—";
+        ui.dealerBustRisk.textContent = "—";
+      } else {
+        const shouldReveal =
+          state.coachMode === "mentor" ||
+          state.hintRevealed;
+
+        const bustRisk = calculateBustRisk(hand.cards);
+        const dealerValue =
+          state.dealerHand[0].rank === "A"
+            ? 11
+            : state.dealerHand[0].value;
+
+        if (shouldReveal) {
+          ui.adviceIcon.textContent = ACTION_ICONS[advice.action];
+          ui.adviceTitle.textContent = advice.title;
+          ui.adviceSubtitle.textContent = advice.subtitle;
+          ui.adviceWhy.textContent = advice.why;
+          ui.strategyPath.textContent = `策略路徑：${advice.path}`;
+          ui.bustRisk.textContent = `${bustRisk.toFixed(1)}%`;
+          ui.dealerBustRisk.textContent =
+            `${DEALER_BUST_RATES[dealerValue].toFixed(1)}%`;
+
+          const targetButton = document.querySelector(
+            `[data-action="${advice.action}"]`
+          );
+
+          if (targetButton && !targetButton.disabled) {
+            targetButton.classList.add("recommended");
+          }
+        } else {
+          ui.adviceIcon.textContent =
+            state.coachMode === "exam" ? "✎" : "?";
+          ui.adviceTitle.textContent =
+            state.coachMode === "exam" ? "請先作答" : "先自行判斷";
+          ui.adviceSubtitle.textContent =
+            `${handTypeLabel(hand.cards)} 對莊家 ${state.dealerHand[0].rank}`;
+          ui.adviceWhy.textContent =
+            state.coachMode === "exam"
+              ? "考試模式不顯示答案。先選擇動作；牌局紀錄會標示你的選擇是否符合目前策略。"
+              : "先判斷這是對子、軟牌或硬牌，再判斷莊家明牌屬於弱牌 2–6，還是強牌 7–A。需要時按「提示」。";
+          ui.strategyPath.textContent =
+            "提示方法：辨認手型 → 看莊家明牌 → 排除不可用動作 → 查找策略格子。";
+
+          if (state.coachMode === "exam") {
+            ui.bustRisk.textContent = "隱藏";
+            ui.dealerBustRisk.textContent = "隱藏";
+          } else {
+            ui.bustRisk.textContent = `${bustRisk.toFixed(1)}%`;
+            ui.dealerBustRisk.textContent =
+              `${DEALER_BUST_RATES[dealerValue].toFixed(1)}%`;
+          }
+        }
+      }
+
+      ui.countBox.hidden = !state.countEnabled;
+      ui.runningCount.textContent =
+        state.runningCount > 0
+          ? `+${state.runningCount}`
+          : String(state.runningCount);
+
+      const remainingDecks = Math.max(state.shoe.length / 52, 0.25);
+      const trueCount = state.runningCount / remainingDecks;
+
+      ui.trueCount.textContent =
+        `${trueCount >= 0 ? "+" : ""}${trueCount.toFixed(1)}`;
+    }
+
+    function renderStats() {
+      const accuracy = stats.decisions
+        ? `${Math.round((stats.correct / stats.decisions) * 100)}%`
+        : "—";
+
+      ui.balanceValue.textContent = formatNumber(balance);
+      ui.balanceStat.textContent = formatNumber(balance);
+      ui.betValue.textContent = formatNumber(bet);
+      ui.accuracyStat.textContent = accuracy;
+      ui.streakStat.textContent = String(stats.streak);
+      ui.roundsStat.textContent = String(stats.rounds);
+      ui.recordStat.textContent =
+        `${stats.wins} / ${stats.losses} / ${stats.pushes}`;
+
+      ui.shoeLabel.textContent =
+        `${(state.shoe.length / 52).toFixed(1)} 副牌`;
+    }
+
+    function render() {
+      renderDealer();
+      renderPlayerHands();
+      renderStats();
+      renderControls();
+      renderCoach();
+      ui.tableStatus.textContent = state.status;
+      ui.soundButton.textContent = state.sound ? "🔊" : "🔇";
+    }
+
+    async function dealToPlayer(handIndex) {
+      const card = drawCard();
+      exposeCard(card);
+      state.playerHands[handIndex].cards.push(card);
+      render();
+      await animateCardFromShoe(card.id);
+      return card;
+    }
+
+    async function dealToDealer(hidden = false) {
+      const card = drawCard();
+
+      if (!hidden) {
+        exposeCard(card);
+      }
+
+      state.dealerHand.push(card);
+      render();
+      await animateCardFromShoe(card.id);
+      return card;
+    }
+
+    async function revealHoleCard() {
+      if (state.holeRevealed || !state.dealerHand[1]) return;
+
+      state.holeRevealed = true;
+      exposeCard(state.dealerHand[1]);
+      render();
+      await animateReveal(state.dealerHand[1].id);
+    }
+
+    function clearOutcomeVisual() {
+      ui.resultBanner.hidden = true;
+      ui.resultBanner.className = "result-banner";
+      ui.tableShell.classList.remove(
+        "outcome-win",
+        "outcome-loss",
+        "outcome-push"
+      );
+
+      $$
+
+(".confetti").forEach((piece) => piece.remove());
+    }
+
+    function createConfetti() {
+      const colors = ["#f4c767", "#51dfa3", "#ffffff", "#ff8e8e", "#72b7ff"];
+
+      for (let i = 0; i < 28; i++) {
+        const piece = document.createElement("i");
+        piece.className = "confetti";
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.background = colors[i % colors.length];
+        piece.style.animationDelay = `${Math.random() * 0.55}s`;
+        piece.style.setProperty(
+          "--drift",
+          `${-130 + Math.random() * 260}px`
+        );
+        ui.tableShell.appendChild(piece);
+
+        setTimeout(() => piece.remove(), 2500);
+      }
+    }
+
+    function showOutcome(outcome, net, summary) {
+      const sign = net > 0 ? "+" : "";
+      const titles = {
+        win: "本局勝利",
+        loss: "本局失利",
+        push: "本局持平"
+      };
+
+      ui.resultBanner.className = `result-banner ${outcome}`;
+      ui.resultTitle.textContent =
+        `${titles[outcome]} · 淨值 ${sign}${formatNumber(net)}`;
+      ui.resultSubtitle.textContent = summary;
+      ui.resultBanner.hidden = false;
+
+      ui.tableShell.classList.add(`outcome-${outcome}`);
+      playResultSound(outcome);
+
+      if (outcome === "win") {
+        createConfetti();
+        vibrate([40, 40, 80]);
+      } else if (outcome === "loss") {
+        vibrate([100, 50, 100]);
+      } else {
+        vibrate(45);
+      }
+    }
+
+    function isLegalAction(action) {
+      const legal = {
+        H: canHit(),
+        S: canStand(),
+        D: canDouble(),
+        P: canSplit(),
+        R: canSurrender()
+      };
+
+      return legal[action];
+    }
+
+    function recordDecision(action, advice) {
+      const hand = state.playerHands[state.activeHand];
+      const correct = action === advice.action;
+
+      const decision = {
+        handIndex: state.activeHand + 1,
+        playerCards: cardsLabel(hand.cards),
+        playerType: handTypeLabel(hand.cards),
+        dealerUp: cardLabel(state.dealerHand[0]),
+        action,
+        recommended: advice.action,
+        correct,
+        reason: advice.why,
+        path: advice.path,
+        strategy: STRATEGIES[state.strategyMode].title
+      };
+
+      state.roundDecisions.push(decision);
+      stats.decisions += 1;
+
+      if (correct) {
+        stats.correct += 1;
+        showToast(`正確：${ACTION_NAMES[action]}。`);
+      } else {
+        showToast(
+          `策略偏離：你選擇${ACTION_NAMES[action]}，建議是${ACTION_NAMES[advice.action]}。`
+        );
+      }
+
+      persist();
+    }
+
+    async function startRound() {
+      if (state.busy) return;
+
+      if (balance < 10) {
+        resetPracticeBank();
+        return;
+      }
+
+      bet = Math.min(Math.max(10, bet), balance);
+
+      clearOutcomeVisual();
+      const reshuffled = ensureShoe();
+
+      state.phase = "dealing";
+      state.busy = true;
+      state.dealerHand = [];
+      state.holeRevealed = false;
+      state.playerHands = [createHand([], bet)];
+      state.activeHand = 0;
+      state.roundStartBalance = balance;
+      state.totalWager = bet;
+      state.roundDecisions = [];
+      state.hintRevealed = false;
+      state.lastRecordId = null;
+
+      balance -= bet;
+
+      announce(
+        reshuffled
+          ? "已洗牌。發牌順序：玩家 → 莊家明牌 → 玩家 → 莊家暗牌。"
+          : "發牌順序：玩家 → 莊家明牌 → 玩家 → 莊家暗牌。"
+      );
+
+      render();
+
+      announce("第 1 張：發給玩家。");
+      await dealToPlayer(0);
+
+      announce("第 2 張：發給莊家，正面朝上。");
+      await dealToDealer(false);
+
+      announce("第 3 張：發給玩家。");
+      await dealToPlayer(0);
+
+      announce("第 4 張：發給莊家，保持暗牌。");
+      await dealToDealer(true);
+
+      const playerValue = handValue(state.playerHands[0].cards);
+      const dealerValue = handValue(state.dealerHand);
+
+      if (playerValue.blackjack || dealerValue.blackjack) {
+        announce("檢查起手 Blackjack。");
+        await sleep(350);
+        await dealerPlay();
+        return;
+      }
+
+      state.phase = "player";
+      state.busy = false;
+
+      if (["A", "10", "J", "Q", "K"].includes(state.dealerHand[0].rank)) {
+        announce("莊家已檢查暗牌：不是 Blackjack。現在輪到你。");
+      } else {
+        announce("輪到你。先判斷手型，再觀察莊家明牌。");
+      }
+
+      render();
+    }
+
+    async function performAction(action) {
+      if (state.busy || !isLegalAction(action)) return;
+
+      const hand = state.playerHands[state.activeHand];
+      const advice = currentAdvice();
+
+      if (!hand || !advice) return;
+
+      recordDecision(action, advice);
+
+      hand.decisionCount += 1;
+      state.hintRevealed = false;
+      state.busy = true;
+      render();
+
+      if (action === "H") {
+        announce(`你選擇要牌。`);
+        await dealToPlayer(state.activeHand);
+
+        const value = handValue(hand.cards);
+
+        if (value.total > 21) {
+          hand.status = "bust";
+          announce(`你得到 ${value.total} 點，爆牌。`);
+          await sleep(350);
+          await advanceToNextHand(state.activeHand + 1);
+          return;
+        }
+
+        if (value.total === 21) {
+          hand.status = "stood";
+          announce("你已達 21 點，自動停牌。");
+          await sleep(300);
+          await advanceToNextHand(state.activeHand + 1);
+          return;
+        }
+
+        state.busy = false;
+        announce(`目前 ${value.soft ? "軟" : "硬"} ${value.total} 點，請繼續決策。`);
+        render();
+        return;
+      }
+
+      if (action === "S") {
+        hand.status = "stood";
+        announce(`你選擇停牌，保留 ${handValue(hand.cards).total} 點。`);
+        render();
+        await sleep(280);
+        await advanceToNextHand(state.activeHand + 1);
+        return;
+      }
+
+      if (action === "D") {
+        const additionalBet = hand.bet;
+        balance -= additionalBet;
+        hand.bet *= 2;
+        state.totalWager += additionalBet;
+
+        announce(`你選擇加倍，注碼增至 ${formatNumber(hand.bet)}，並且只取一張牌。`);
+        await dealToPlayer(state.activeHand);
+
+        const value = handValue(hand.cards);
+        hand.status = value.total > 21 ? "bust" : "stood";
+
+        announce(
+          value.total > 21
+            ? `加倍後得到 ${value.total} 點，爆牌。`
+            : `加倍後得到 ${value.total} 點，依規則自動停牌。`
+        );
+
+        render();
+        await sleep(350);
+        await advanceToNextHand(state.activeHand + 1);
+        return;
+      }
+
+      if (action === "P") {
+        const index = state.activeHand;
+        const originalBet = hand.bet;
+        const [firstCard, secondCard] = hand.cards;
+        const splitAces = firstCard.rank === "A";
+
+        balance -= originalBet;
+        state.totalWager += originalBet;
+
+        const firstHand = createHand(
+          [firstCard],
+          originalBet,
+          true,
+          splitAces
+        );
+
+        const secondHand = createHand(
+          [secondCard],
+          originalBet,
+          true,
+          splitAces
+        );
+
+        state.playerHands.splice(
+          index,
+          1,
+          firstHand,
+          secondHand
+        );
+
+        state.activeHand = index;
+        announce(
+          splitAces
+            ? "分開 A、A。每手只補一張牌，之後自動停牌。"
+            : "已分牌。依順序先補第一手，再補第二手。"
+        );
+
+        render();
+        await sleep(220);
+
+        announce("為分牌後的第一手補一張牌。");
+        await dealToPlayer(index);
+
+        announce("為分牌後的第二手補一張牌。");
+        await dealToPlayer(index + 1);
+
+        if (splitAces) {
+          firstHand.status = "stood";
+          secondHand.status = "stood";
+          render();
+          await sleep(300);
+          await advanceToNextHand(index + 2);
+          return;
+        }
+
+        if (handValue(firstHand.cards).total === 21) {
+          firstHand.status = "stood";
+        }
+
+        if (handValue(secondHand.cards).total === 21) {
+          secondHand.status = "stood";
+        }
+
+        const nextIndex = state.playerHands.findIndex(
+          (candidate, candidateIndex) =>
+            candidateIndex >= index &&
+            candidate.status === "playing"
+        );
+
+        if (nextIndex >= 0) {
+          state.activeHand = nextIndex;
+          state.busy = false;
+          announce(`現在操作手牌 ${nextIndex + 1}。`);
+          render();
+        } else {
+          await advanceToNextHand(index + 2);
+        }
+
+        return;
+      }
+
+      if (action === "R") {
+        hand.status = "surrendered";
+        announce("你選擇投降，將在結算時收回一半注碼。");
+        render();
+        await sleep(300);
+        await advanceToNextHand(state.activeHand + 1);
+      }
+    }
+
+    async function advanceToNextHand(startIndex) {
+      const nextIndex = state.playerHands.findIndex(
+        (hand, index) =>
+          index >= startIndex &&
+          hand.status === "playing"
+      );
+
+      if (nextIndex >= 0) {
+        state.activeHand = nextIndex;
+        state.hintRevealed = false;
+        state.busy = false;
+        announce(`現在操作手牌 ${nextIndex + 1}。`);
+        render();
+        return;
+      }
+
+      await dealerPlay();
+    }
+
+    async function dealerPlay() {
+      state.phase = "dealer";
+      state.busy = true;
+      announce("莊家翻開暗牌。");
+      render();
+
+      await revealHoleCard();
+
+      const dealerNatural = handValue(state.dealerHand).blackjack;
+      const liveHands = state.playerHands.filter(
+        (hand) =>
+          hand.status !== "bust" &&
+          hand.status !== "surrendered"
+      );
+
+      const requiresDealerDraw =
+        !dealerNatural &&
+        liveHands.some((hand) => !isNaturalBlackjack(hand));
+
+      if (requiresDealerDraw) {
+        while (true) {
+          const value = handValue(state.dealerHand);
+
+          if (value.total < 17) {
+            announce(
+              `莊家目前 ${value.soft ? "軟" : "硬"} ${value.total}，依規則必須要牌。`
+            );
+
+            await sleep(280);
+            await dealToDealer(false);
+            continue;
+          }
+
+          if (value.total === 17 && value.soft) {
+            announce("莊家為軟 17；本桌規則是軟 17 停牌。");
+          } else if (value.total > 21) {
+            announce(`莊家 ${value.total} 點，爆牌。`);
+          } else {
+            announce(`莊家 ${value.total} 點，停牌。`);
+          }
+
+          break;
+        }
+      } else if (!liveHands.length) {
+        announce("所有玩家手牌都已爆牌或投降，莊家不需要繼續要牌。");
+      } else if (dealerNatural) {
+        announce("莊家起手 Blackjack。");
+      } else {
+        announce("玩家為起手 Blackjack，莊家無需繼續要牌。");
+      }
+
+      await sleep(450);
+      settleRound();
+    }
+
+    function settleHand(hand, dealerValue) {
+      const playerValue = handValue(hand.cards);
+      const dealerNatural = dealerValue.blackjack;
+      const playerNatural = isNaturalBlackjack(hand);
+
+      if (hand.status === "surrendered") {
+        return {
+          result: "loss",
+          payout: hand.bet * 0.5,
+          reason: "你選擇後期投降，收回一半注碼，因此本手淨損失半注。"
+        };
+      }
+
+      if (playerValue.total > 21) {
+        return {
+          result: "loss",
+          payout: 0,
+          reason: `你的點數是 ${playerValue.total}，超過 21。玩家爆牌會立即失敗，不再與莊家比較。`
+        };
+      }
+
+      if (dealerNatural) {
+        if (playerNatural) {
+          return {
+            result: "push",
+            payout: hand.bet,
+            reason: "玩家與莊家都是起手 Blackjack，原注退回。"
+          };
+        }
+
+        return {
+          result: "loss",
+          payout: 0,
+          reason: "莊家是起手 Blackjack；一般 21 點不能擊敗莊家 Blackjack。"
+        };
+      }
+
+      if (playerNatural) {
+        return {
+          result: "win",
+          payout: hand.bet * 2.5,
+          reason: "你的起手兩張牌構成 Blackjack，依本桌規則按 3:2 支付獎金。"
+        };
+      }
+
+      if (dealerValue.total > 21) {
+        return {
+          result: "win",
+          payout: hand.bet * 2,
+          reason: `莊家得到 ${dealerValue.total} 點並爆牌；你的手牌未爆，因此獲勝。`
+        };
+      }
+
+      if (playerValue.total > dealerValue.total) {
+        return {
+          result: "win",
+          payout: hand.bet * 2,
+          reason: `你是 ${playerValue.total} 點，莊家是 ${dealerValue.total} 點；雙方都未爆牌，你的點數較高。`
+        };
+      }
+
+      if (playerValue.total < dealerValue.total) {
+        return {
+          result: "loss",
+          payout: 0,
+          reason: `你是 ${playerValue.total} 點，莊家是 ${dealerValue.total} 點；雙方都未爆牌，但莊家點數較高。`
+        };
+      }
+
+      return {
+        result: "push",
+        payout: hand.bet,
+        reason: `你與莊家都是 ${playerValue.total} 點，和局並退回原注。`
+      };
+    }
+
+    function settleRound() {
+      state.phase = "settling";
+
+      const dealerValue = handValue(state.dealerHand);
+      let totalPayout = 0;
+
+      for (const hand of state.playerHands) {
+        const settlement = settleHand(hand, dealerValue);
+
+        hand.result = settlement.result;
+        hand.payout = settlement.payout;
+        hand.reason = settlement.reason;
+        totalPayout += settlement.payout;
+      }
+
+      balance += totalPayout;
+
+      const net = balance - state.roundStartBalance;
+      const outcome = net > 0 ? "win" : net < 0 ? "loss" : "push";
+
+      stats.rounds += 1;
+
+      if (outcome === "win") {
+        stats.wins += 1;
+        stats.streak += 1;
+        stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
+      } else if (outcome === "loss") {
+        stats.losses += 1;
+        stats.streak = 0;
+      } else {
+        stats.pushes += 1;
+      }
+
+      const incorrectDecisions =
+        state.roundDecisions.filter((decision) => !decision.correct).length;
+
+      const learningNote = incorrectDecisions > 0
+        ? `本局有 ${incorrectDecisions} 次策略偏離。這不代表偏離一定造成此次失敗，但長期會降低期望值。`
+        : state.roundDecisions.length
+          ? "本局所有已記錄決策都符合所選策略。即使策略正確仍可能輸，因為策略只改善長期平均結果。"
+          : "本局沒有一般決策，可能由起手 Blackjack 直接完成。";
+
+      const record = {
+        id: Date.now(),
+        time: new Date().toLocaleString("zh-Hant"),
+        outcome,
+        net,
+        startBalance: state.roundStartBalance,
+        endBalance: balance,
+        totalWager: state.totalWager,
+        dealerCards: cardsLabel(state.dealerHand),
+        dealerTotal: dealerValue.total,
+        dealerSoft: dealerValue.soft,
+        hands: state.playerHands.map((hand, index) => ({
+          index: index + 1,
+          cards: cardsLabel(hand.cards),
+          total: handValue(hand.cards).total,
+          type: handTypeLabel(hand.cards),
+          bet: hand.bet,
+          result: hand.result,
+          payout: hand.payout,
+          reason: hand.reason
+        })),
+        decisions: state.roundDecisions,
+        learningNote
+      };
+
+      history.unshift(record);
+      history = history.slice(0, 50);
+      state.lastRecordId = record.id;
+
+      const counts = state.playerHands.reduce(
+        (result, hand) => {
+          result[hand.result] += 1;
+          return result;
+        },
+        { win: 0, loss: 0, push: 0 }
+      );
+
+      const summary =
+        state.playerHands.length === 1
+          ? state.playerHands[0].reason
+          : `${state.playerHands.length} 手：${counts.win} 勝、${counts.loss} 負、${counts.push} 和。`;
+
+      state.phase = "over";
+      state.busy = false;
+
+      announce(
+        outcome === "win"
+          ? `本局勝利，淨增加 ${formatNumber(net)} 籌碼。`
+          : outcome === "loss"
+            ? `本局失利，淨減少 ${formatNumber(Math.abs(net))} 籌碼。`
+            : "本局持平，籌碼沒有變化。"
+      );
+
+      persist();
+      render();
+      renderHistory();
+      showOutcome(outcome, net, summary);
+    }
+
+    function resetPracticeBank() {
+      if (
+        state.phase !== "idle" &&
+        state.phase !== "over"
+      ) return;
+
+      balance = 1000;
+      bet = 25;
+      showToast("練習籌碼已重置為 1,000。");
+      persist();
+      render();
+    }
+
+    function setBet(value) {
+      if (
+        state.busy ||
+        !["idle", "over"].includes(state.phase)
+      ) return;
+
+      const maximum = Math.max(10, balance);
+      bet = Math.min(maximum, Math.max(10, Number(value)));
+      persist();
+      render();
+    }
+
+    function outcomeName(outcome) {
+      return {
+        win: "勝利",
+        loss: "失敗",
+        push: "和局"
+      }[outcome];
+    }
+
+    function resultName(result) {
+      return {
+        win: "勝",
+        loss: "負",
+        push: "和"
+      }[result];
+    }
+
+    function renderHistory() {
+      if (!history.length) {
+        ui.historyList.innerHTML = `
+          <div class="history-empty">
+            尚未有牌局紀錄。完成第一局後，這裡會顯示勝負原因與策略偏離。
+          </div>
+        `;
+        return;
+      }
+
+      ui.historyList.innerHTML = history.map((record) => {
+        const sign = record.net > 0 ? "+" : "";
+        const hands = record.hands.map((hand) => `
+          <div style="padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:11px;margin-top:7px">
+            <strong>手牌 ${hand.index} · ${hand.cards} · ${hand.type}</strong>
+            <p style="margin:5px 0 0">
+              注碼 ${formatNumber(hand.bet)} · 結果：${resultName(hand.result)}
+            </p>
+            <p style="margin:5px 0 0"><strong>原因：</strong>${hand.reason}</p>
+          </div>
+        `).join("");
+
+        const decisions = record.decisions.length
+          ? `
+            <ul class="decision-list">
+              ${record.decisions.map((decision) => `
+                <li class="decision ${decision.correct ? "correct" : "wrong"}">
+                  <strong>
+                    ${decision.correct ? "✓ 正確" : "✕ 策略偏離"}
+                    · ${decision.playerType} 對 ${decision.dealerUp}
+                  </strong>
+                  <div>
+                    你選擇「${ACTION_NAMES[decision.action]}」；
+                    ${decision.correct
+                      ? "符合"
+                      : `建議為「${ACTION_NAMES[decision.recommended]}」`}
+                    ${decision.strategy}。
+                  </div>
+                  <div style="margin-top:4px;color:rgba(255,255,255,.55)">
+                    ${decision.path}
+                  </div>
+                </li>
+              `).join("")}
+            </ul>
+          `
+          : "<p>本局沒有需要玩家選擇的一般決策。</p>";
+
+        return `
+          <details
+            class="history-item"
+            ${record.id === state.lastRecordId ? "open" : ""}
+          >
+            <summary>
+              <div>
+                <span class="outcome-tag ${record.outcome}">
+                  ${outcomeName(record.outcome)}
+                </span>
+                <small>${record.time}</small>
+              </div>
+              <strong>
+                淨值 ${sign}${formatNumber(record.net)}
+              </strong>
+            </summary>
+
+            <div class="history-detail">
+              <h4>莊家結果</h4>
+              <p>
+                ${record.dealerCards} ·
+                ${record.dealerSoft ? "軟 " : ""}${record.dealerTotal} 點
+              </p>
+
+              <h4>每手勝負原因</h4>
+              ${hands}
+
+              <h4>決策檢查</h4>
+              ${decisions}
+
+              <h4>導師總結</h4>
+              <p>${record.learningNote}</p>
+            </div>
+          </details>
+        `;
+      }).join("");
+    }
+
+    function openDialog(dialog) {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    }
+
+    function buildStrategyTables() {
+      const dealers = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "A"];
+
+      const hardRows = [
+        ["8 以下", "H","H","H","H","H","H","H","H","H","H"],
+        ["9", "H","D/H","D/H","D/H","D/H","H","H","H","H","H"],
+        ["10", "D/H","D/H","D/H","D/H","D/H","D/H","D/H","D/H","H","H"],
+        ["11", "D/H","D/H","D/H","D/H","D/H","D/H","D/H","D/H","D/H","H"],
+        ["12", "H","H","S","S","S","H","H","H","H","H"],
+        ["13", "S","S","S","S","S","H","H","H","H","H"],
+        ["14", "S","S","S","S","S","H","H","H","H","H"],
+        ["15", "S","S","S","S","S","H","H","H","R/H","H"],
+        ["16", "S","S","S","S","S","H","H","R/H","R/H","R/H"],
+        ["17 以上", "S","S","S","S","S","S","S","S","S","S"]
+      ];
+
+      const softRows = [
+        ["A,2", "H","H","H","D/H","D/H","H","H","H","H","H"],
+        ["A,3", "H","H","H","D/H","D/H","H","H","H","H","H"],
+        ["A,4", "H","H","D/H","D/H","D/H","H","H","H","H","H"],
+        ["A,5", "H","H","D/H","D/H","D/H","H","H","H","H","H"],
+        ["A,6", "H","D/H","D/H","D/H","D/H","H","H","H","H","H"],
+        ["A,7", "S","D/S","D/S","D/S","D/S","S","S","H","H","H"],
+        ["A,8", "S","S","S","S","S","S","S","S","S","S"],
+        ["A,9", "S","S","S","S","S","S","S","S","S","S"]
+      ];
+
+      const pairRows = [
+        ["2,2", "P","P","P","P","P","P","H","H","H","H"],
+        ["3,3", "P","P","P","P","P","P","H","H","H","H"],
+        ["4,4", "H","H","H","P","P","H","H","H","H","H"],
+        ["5,5", "D/H","D/H","D/H","D/H","D/H","D/H","D/H","D/H","H","H"],
+        ["6,6", "P","P","P","P","P","H","H","H","H","H"],
+        ["7,7", "P","P","P","P","P","P","H","H","H","H"],
+        ["8,8", "P","P","P","P","P","P","P","P","P","P"],
+        ["9,9", "P","P","P","P","P","S","P","P","S","S"],
+        ["10,10", "S","S","S","S","S","S","S","S","S","S"],
+        ["A,A", "P","P","P","P","P","P","P","P","P","P"]
+      ];
+
+      function tableHTML(caption, firstHeader, rows) {
+        return `
+          <div class="table-scroll">
+            <table class="strategy-table">
+              <caption>${caption}</caption>
+              <thead>
+                <tr>
+                  <th>${firstHeader}</th>
+                  ${dealers.map((dealer) => `<th>${dealer}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${row[0]}</th>
+                    ${row.slice(1).map((code) => `
+                      <td class="code-${code[0]}">${code}</td>
+                    `).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      $("#strategyTables").innerHTML =
+        tableHTML("硬牌策略", "玩家點數", hardRows) +
+        tableHTML("軟牌策略", "玩家手牌", softRows) +
+        tableHTML("對子策略", "玩家對子", pairRows);
+    }
+
+    ui.dealButton.addEventListener("click", startRound);
+
+    ui.actionButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        performAction(button.dataset.action);
+      });
+    });
+
+    ui.hintButton.addEventListener("click", () => {
+      if (state.phase !== "player" || state.busy) return;
+
+      state.hintRevealed = true;
+      renderCoach();
+
+      const advice = currentAdvice();
+
+      if (advice) {
+        showToast(
+          `提示：建議${advice.title}。查看右側導師了解原因。`
+        );
+      }
+    });
+
+    ui.betMinus.addEventListener("click", () => {
+      setBet(bet - 10);
+    });
+
+    ui.betPlus.addEventListener("click", () => {
+      setBet(bet + 10);
+    });
+
+    ui.betButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setBet(Number(button.dataset.bet));
+      });
+    });
+
+    ui.resetBank.addEventListener("click", resetPracticeBank);
+
+    ui.coachMode.value = state.coachMode;
+    ui.strategyMode.value = state.strategyMode;
+    ui.countToggle.checked = state.countEnabled;
+
+    ui.coachMode.addEventListener("change", () => {
+      state.coachMode = ui.coachMode.value;
+      state.hintRevealed = state.coachMode === "mentor";
+      persist();
+      renderCoach();
+    });
+
+    ui.strategyMode.addEventListener("change", () => {
+      state.strategyMode = ui.strategyMode.value;
+      state.hintRevealed = state.coachMode === "mentor";
+      persist();
+      renderCoach();
+    });
+
+    ui.countToggle.addEventListener("change", () => {
+      state.countEnabled = ui.countToggle.checked;
+      persist();
+      renderCoach();
+    });
+
+    ui.soundButton.addEventListener("click", () => {
+      state.sound = !state.sound;
+      persist();
+      render();
+      showToast(state.sound ? "音效已開啟。" : "音效已關閉。");
+    });
+
+    $("#historyButton").addEventListener("click", () => {
+      renderHistory();
+      openDialog(ui.historyDialog);
+    });
+
+    $("#learnButton").addEventListener("click", () => {
+      openDialog(ui.learnDialog);
+    });
+
+    ui.resultDetailButton.addEventListener("click", () => {
+      renderHistory();
+      openDialog(ui.historyDialog);
+    });
+
+    $("#clearHistoryButton").addEventListener("click", () => {
+      if (!confirm("確定要清空所有牌局紀錄嗎？")) return;
+
+      history = [];
+      state.lastRecordId = null;
+      persist();
+      renderHistory();
+    });
+
+    
+
+$$("[data-close-dialog]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const dialog = document.getElementById(button.dataset.closeDialog);
+        dialog.close();
+      });
+    });
+
+    $$
+
+(".learn-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        const tab = button.dataset.learnTab;
+
+        
+
+$$(".learn-tab").forEach((candidate) => {
+          candidate.classList.toggle(
+            "active",
+            candidate.dataset.learnTab === tab
+          );
+        });
+
+        $$
+
+("[data-learn-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.learnPanel !== tab;
+        });
+      });
+    });
+
+    [ui.historyDialog, ui.learnDialog].forEach((dialog) => {
+      dialog.addEventListener("click", (event) => {
+        const rect = dialog.getBoundingClientRect();
+        const outside =
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom;
+
+        if (outside) dialog.close();
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (
+        event.target.matches("input, select, textarea") ||
+        document.querySelector("dialog[open]")
+      ) return;
+
+      const key = event.key.toLowerCase();
+      const actionMap = {
+        h: "H",
+        s: "S",
+        d: "D",
+        p: "P",
+        r: "R"
+      };
+
+      if (actionMap[key]) {
+        event.preventDefault();
+        performAction(actionMap[key]);
+        return;
+      }
+
+      if (event.key === " " && ["idle", "over"].includes(state.phase)) {
+        event.preventDefault();
+        startRound();
+      }
+
+      if (event.key === "?") {
+        event.preventDefault();
+        ui.hintButton.click();
+      }
+    });
+
+    buildShoe();
+    buildStrategyTables();
+    renderHistory();
+    render();
+  </script>
+</body>
+</html>
